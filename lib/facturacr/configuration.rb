@@ -31,7 +31,7 @@ module FE
     def read_config_file
       if file? && @file_path && File.exist?(@file_path)
         template = ERB.new(File.read(@file_path))
-        result = YAML.load(template.result(binding))
+        result = FE.load_yaml(template.result(binding))
         result[@environment].each do |k,v|
           if respond_to?(k)
             self.send("#{k}=",v)

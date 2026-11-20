@@ -7,6 +7,7 @@ module FE
                  lx Bq Gy Sv kat Pa·s N·m N/m rad/s rad/s² W/m² J/K J/(kg·K) J/kg W/(m·K) J/m³ V/m C/m³ C/m² F/m H/m J/mol J/(mol·K)
                  C/kg Gy/s W/sr W/(m²·sr) kat/m³ min h d º ´ ´´ L t Np B eV u ua Unid Gal G Km ln cm mL mm Oz Otros].freeze
       SERVICE_UNITS = %w[Al Alc Os Spe Sp St min h I Cm].freeze
+      CODE_MANDATORY_SINCE = Time.new(2020, 12, 1, 0, 0, 0, "-06:00")
       CODE_TYPES = {
         '01' => 'Código del producto del vendedor',
         '02' => 'Código del producto del comprador',
@@ -50,7 +51,7 @@ module FE
 
       validates :document_type, presence: true, inclusion: FE::Document::DOCUMENT_TYPES.keys
       validates :line_number, presence: true
-      validates :tariff_item, presence: true, length: {is: 12}, if:->{document_type.eql?(FE::ExportInvoice::DOCUMENT_TYPE) && !SERVICE_UNITS.include?(unit) && document.version_43? }
+      validates :tariff_item, presence: true, length: {is: 12}, if:->{document_type.eql?(FE::ExportInvoice::DOCUMENT_TYPE) && !SERVICE_UNITS.include?(unit) && document&.version_43? }
       validates :quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }, if: -> { !document_type.eql?(FE::Payment::DOCUMENT_TYPE)}
       validates :unit, presence: true, inclusion: UNITS, if: -> { !document_type.eql?(FE::Payment::DOCUMENT_TYPE)}
       validates :description, presence: true, length: { maximum: 200 }
@@ -58,17 +59,17 @@ module FE
       validates :total, presence: true
       validates :discount, numericality: { grater_than: 0 }, if: -> { discount.present? }
       validates :discount_reason, presence: true, if: -> { discount.present? }
-      validates :discount_code_reason, presence: true, if: -> { discount.present? && discount_code.eql?("99") && document.version_44?}
+      validates :discount_code_reason, presence: true, if: -> { discount.present? && discount_code.eql?("99") && document&.version_44?}
       validates :subtotal, presence: true
-      validates :taxable_base, presence: true, if: ->{ taxes.map{ |t| t.code.eql?("07")}.include?(true) && document.version_43? }
+      validates :taxable_base, presence: true, if: ->{ taxes.map{ |t| t.code.eql?("07")}.include?(true) && document&.version_43? }
       validates :net_tax,presence:true, if: ->{ taxes.map{ |t| t.exoneration.present? }.include?(true) }
       validates :net_total, presence: true
       validates :comercial_code_type, inclusion: CODE_TYPES.keys, if: -> { comercial_code.present? }
       validates :comercial_code, length: {maximum: 20} , if: -> { comercial_code.present? && !document_type.eql?(FE::Payment::DOCUMENT_TYPE)}
       validates :code, presence: true, length: {maximum: 13}, if: :code_is_mandatory?
-      validates :transaction_type, length: {is: 2}, if: -> {transaction_type.present? && document.version_44? }
-      validates :transaction_type, inclusion: TRANSACTION_TYPES.keys, if: -> {transaction_type.present? && document.version_44?  }
-      validates :combo_items, length: { minimum: 1, maximum: 20 }, if: ->{combo_items.present? && document.version_44?}
+      validates :transaction_type, length: {is: 2}, if: -> {transaction_type.present? && document&.version_44? }
+      validates :transaction_type, inclusion: TRANSACTION_TYPES.keys, if: -> {transaction_type.present? && document&.version_44?  }
+      validates :combo_items, length: { minimum: 1, maximum: 20 }, if: ->{combo_items.present? && document&.version_44?}
 
       validate :calculations_ok?
 
@@ -233,22 +234,14 @@ module FE
       end
 
       def calculations_ok?
-        if !@document.document_type.eql?("10")
+        if !@document_type.eql?(FE::Payment::DOCUMENT_TYPE)
           errors.add :total, :invalid_amount, message: 'invalid amount' if (@total - (@quantity * @unit_price).round(5)).abs > 1
         end
       end
 
       def code_is_mandatory?
         if (!@skip_code_validation.present? || !@skip_code_validation) && !@document_type.eql?(FE::Payment::DOCUMENT_TYPE)
-          if Time.zone.now >= Time.zone.parse("2020-12-01").beginning_of_day
-            if @issued_date.present? && @issued_date < Time.zone.parse("2020-12-01").beginning_of_day
-              false
-            else
-              true
-            end
-          else
-            false
-          end
+          !(@issued_date.present? && @issued_date < CODE_MANDATORY_SINCE)
         else
           false
         end

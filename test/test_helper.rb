@@ -36,7 +36,7 @@ class Minitest::Test
 
   def read_static_data
     if File.exist?("tmp/data.yml")
-      data = YAML.load_file("tmp/data.yml")
+      data = FE.load_yaml(File.read("tmp/data.yml"))
       return data.with_indifferent_access
     else
       raise "static data file (tmp/data.yml) does not exist."

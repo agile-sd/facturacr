@@ -12,7 +12,7 @@ module FE
       method_option :output_path, desc: "path to save the output"     
       def invoice
         start = Time.now
-        data = YAML.load_file(options[:data_path]).with_indifferent_access
+        data = FE.load_yaml(File.read(options[:data_path])).with_indifferent_access
         builder = FE::Builder.new
         
         invoice = builder.invoice(data[:document])
@@ -45,7 +45,7 @@ module FE
       method_option :invoice_number, desc: "invoice key", aliases: "-i"
       method_option :invoice_date, desc: "invoice date", aliases: '-d'
       def credit_note
-        data = YAML.load_file(options[:data_path]).with_indifferent_access
+        data = FE.load_yaml(File.read(options[:data_path])).with_indifferent_access
         builder = FE::Builder.new
         
         credit_note = builder.credit_note(data[:document])
@@ -80,7 +80,7 @@ module FE
       method_option :invoice_number, desc: "invoice key", aliases: "-i"
       method_option :invoice_date, desc: "invoice date", aliases: '-d'
       def debit_note
-        data = YAML.load_file(options[:data_path]).with_indifferent_access
+        data = FE.load_yaml(File.read(options[:data_path])).with_indifferent_access
         builder = FE::Builder.new
         
         debit_note = builder.debit_note(data[:document])
@@ -113,7 +113,7 @@ module FE
       method_option :data_path, default: "tmp/data.yml"
       method_option :output_path, desc: "path to save the output"     
       def ticket      
-        data = YAML.load_file(options[:data_path]).with_indifferent_access
+        data = FE.load_yaml(File.read(options[:data_path])).with_indifferent_access
         builder = FE::Builder.new
         
         ticket = builder.ticket(data[:document])

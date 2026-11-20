@@ -1,3 +1,4 @@
+require 'date'
 require 'awesome_print'
 
 #require 'facturacr'
@@ -37,6 +38,15 @@ module FE
 
   def self.root
     File.dirname __dir__
+  end
+
+  # Psych 4 (Ruby 3.1+) rejects aliases and dates unless allowed; Psych 3 has no such options.
+  def self.load_yaml(yaml)
+    if Gem::Version.new(Psych::VERSION) >= Gem::Version.new("4.0")
+      YAML.safe_load(yaml, permitted_classes: [Date, Time, Symbol], aliases: true)
+    else
+      YAML.load(yaml)
+    end
   end
 
   def self.bin
